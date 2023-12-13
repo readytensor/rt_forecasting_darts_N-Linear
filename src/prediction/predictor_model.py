@@ -3,7 +3,7 @@ import warnings
 import joblib
 import numpy as np
 import pandas as pd
-from typing import List, Union, Optional, Tuple, Dict
+from typing import Optional
 from darts.models.forecasting.nlinear import NLinearModel
 from darts import TimeSeries
 from schema.data_schema import ForecastingSchema
@@ -32,8 +32,10 @@ class Forecaster:
     def __init__(
         self,
         data_schema: ForecastingSchema,
-        input_chunk_length: int,
-        output_chunk_length: int,
+        input_chunk_length: int = None,
+        output_chunk_length: int = None,
+        history_forecast_ratio: int = None,
+        lags_forecast_ratio: int = None,
         shared_weights: bool = False,
         const_init: bool = True,
         normalize: bool = True,
@@ -46,9 +48,15 @@ class Forecaster:
         """Construct a new NLinear Forecaster
 
         Args:
+
+            data_schema (ForecastingSchema):
+                Schama of the training data.
+
             input_chunk_length (int):
                 Number of time steps in the past to take as a model input (per chunk).
                 Applies to the target series, and past and/or future covariates (if the model supports it).
+
+                Note: If this parameter is not specified, history_forecast_ratio has to be specified.
 
             output_chunk_length (int):
                 Number of time steps predicted at once (per chunk) by the internal model.
@@ -59,6 +67,18 @@ class Forecaster:
                 This is useful when the covariates don't extend far enough into the future,
                 or to prohibit the model from using future values of past and / or future covariates for prediction
                 (depending on the model's covariate support).
+
+                Note: If this parameter is not specified, history_forecast_ratio has to be specified.
+
+            history_forecast_ratio (int):
+                Sets the history length depending on the forecast horizon.
+                For example, if the forecast horizon is 20 and the history_forecast_ratio is 10,
+                history length will be 20*10 = 200 samples.
+
+            lags_forecast_ratio (int):
+                Sets the n_lags parameter depending on the forecast horizon.
+                For example, if the forecast horizon is 20 and the lags_forecast_ratio is 10,
+                n_lags will be 20*10 = 200.
 
             shared_weights (bool):
                 Whether to use shared weights for all components of multivariate series.
@@ -92,6 +112,8 @@ class Forecaster:
         self.data_schema = data_schema
         self.input_chunk_length = input_chunk_length
         self.output_chunk_length = output_chunk_length
+        self.history_forecast_ratio = history_forecast_ratio
+        self.lags_forecast_ratio = lags_forecast_ratio
         self.shared_weights = shared_weights
         self.const_init = const_init
         self.normalize = normalize
@@ -100,6 +122,7 @@ class Forecaster:
         self.use_exogenous = use_exogenous
         self.random_state = random_state
         self.kwargs = kwargs
+        self.history_length = None
         self._is_trained = False
 
         if not data_schema.past_covariates:
@@ -108,10 +131,15 @@ class Forecaster:
         if not data_schema.future_covariates:
             self.lags_future_covariates = None
 
-        self.history_length = None
-        if kwargs.get("history_length"):
-            self.history_length = kwargs["history_length"]
-            kwargs.pop("history_length")
+        if history_forecast_ratio:
+            self.history_length = (
+                self.data_schema.forecast_length * history_forecast_ratio
+            )
+
+        if lags_forecast_ratio:
+            lags = self.data_schema.forecast_length * lags_forecast_ratio
+            self.input_chunk_length = lags
+            self.output_chunk_length = self.data_schema.forecast_length
 
         stopper = EarlyStopping(
             monitor="train_loss",
