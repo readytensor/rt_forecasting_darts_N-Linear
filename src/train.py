@@ -81,7 +81,10 @@ def run_training(
         default_hyperparameters = read_json_as_dict(default_hyperparameters_file_path)
 
         testing_dataframe = None
-        if data_schema.future_covariates or data_schema.time_col_dtype == "DATE":
+        if data_schema.future_covariates or data_schema.time_col_dtype in [
+            "DATE",
+            "DATETIME",
+        ]:
             testing_dataframe = read_csv_in_directory(paths.TEST_DIR)
 
         forecaster = train_predictor_model(

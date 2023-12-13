@@ -56,7 +56,7 @@ class Forecaster:
                 Number of time steps in the past to take as a model input (per chunk).
                 Applies to the target series, and past and/or future covariates (if the model supports it).
 
-                Note: If this parameter is not specified, history_forecast_ratio has to be specified.
+                Note: If this parameter is not specified, lags_forecast_ratio has to be specified.
 
             output_chunk_length (int):
                 Number of time steps predicted at once (per chunk) by the internal model.
@@ -68,7 +68,7 @@ class Forecaster:
                 or to prohibit the model from using future values of past and / or future covariates for prediction
                 (depending on the model's covariate support).
 
-                Note: If this parameter is not specified, history_forecast_ratio has to be specified.
+                Note: If this parameter is not specified, lags_forecast_ratio has to be specified.
 
             history_forecast_ratio (int):
                 Sets the history length depending on the forecast horizon.
@@ -76,9 +76,9 @@ class Forecaster:
                 history length will be 20*10 = 200 samples.
 
             lags_forecast_ratio (int):
-                Sets the n_lags parameter depending on the forecast horizon.
-                For example, if the forecast horizon is 20 and the lags_forecast_ratio is 10,
-                n_lags will be 20*10 = 200.
+                Sets the input_chunk_length and output_chunk_length parameters depending on the forecast horizon.
+                input_chunk_length = forecast horizon * lags_forecast_ratio
+                output_chunk_length = forecast horizon
 
             shared_weights (bool):
                 Whether to use shared weights for all components of multivariate series.
@@ -124,12 +124,6 @@ class Forecaster:
         self.kwargs = kwargs
         self.history_length = None
         self._is_trained = False
-
-        if not data_schema.past_covariates:
-            self.lags_past_covariates = None
-
-        if not data_schema.future_covariates:
-            self.lags_future_covariates = None
 
         if history_forecast_ratio:
             self.history_length = (
