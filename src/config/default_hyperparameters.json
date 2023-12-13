@@ -4,7 +4,7 @@
   "shared_weights": false,
   "const_init": true,
   "normalize": true,
-  "n_epochs": 5,
+  "n_epochs": 500,
   "batch_size": 16,
   "force_reset": true,
   "save_checkpoints": true,
