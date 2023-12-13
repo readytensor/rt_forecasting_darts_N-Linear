@@ -144,7 +144,6 @@ class Forecaster:
 
         pl_trainer_kwargs = {"callbacks": [stopper]}
 
-        # pl_trainer_kwargs = {}
         if cuda.is_available():
             pl_trainer_kwargs["accelerator"] = "gpu"
             print("GPU training is available.")
