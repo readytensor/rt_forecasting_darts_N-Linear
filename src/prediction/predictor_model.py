@@ -186,7 +186,7 @@ class Forecaster:
         future = []
 
         future_covariates_names = data_schema.future_covariates
-        if data_schema.time_col_dtype == "DATE":
+        if data_schema.time_col_dtype in ["DATE", "DATETIME"]:
             date_col = pd.to_datetime(history[data_schema.time_col])
             year_col = date_col.dt.year
             month_col = date_col.dt.month
@@ -223,8 +223,18 @@ class Forecaster:
             )
 
             scalers[index] = scaler
+            static_covariates = None
+            if self.use_exogenous and self.data_schema.static_covariates:
+                static_covariates = s[self.data_schema.static_covariates]
 
-            target = TimeSeries.from_dataframe(s, value_cols=data_schema.target)
+            target = TimeSeries.from_dataframe(
+                s,
+                value_cols=data_schema.target,
+                static_covariates=static_covariates.iloc[0]
+                if static_covariates is not None
+                else None,
+            )
+
             targets.append(target)
 
             if data_schema.past_covariates:
@@ -278,6 +288,7 @@ class Forecaster:
             past = None
         if not future:
             future = None
+
         return targets, past, future
 
     def fit(
